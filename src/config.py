@@ -52,7 +52,8 @@ class AppConfig:
     @staticmethod
     def load(dotenv_path: str | None = ".env") -> "AppConfig":
         if dotenv_path:
-            load_dotenv(dotenv_path=dotenv_path, override=False)
+            # CLI 已显式传入 env 文件时，应以该文件为准，避免被进程环境中的旧值覆盖。
+            load_dotenv(dotenv_path=dotenv_path, override=True)
 
         rss_url = os.getenv("RSS_URL", "").strip()
         fav_title = os.getenv("FAV_TITLE", "").strip()
