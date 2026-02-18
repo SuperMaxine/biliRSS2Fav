@@ -57,6 +57,41 @@ def _extract_int(payload: dict[str, Any], *keys: str) -> int | None:
     return None
 
 
+
+def _extract_total_count(payload: dict[str, Any]) -> int | None:
+    info = payload.get("info")
+    if isinstance(info, dict):
+        value = info.get("media_count")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.isdigit():
+            return int(value)
+
+    data = payload.get("data")
+    if isinstance(data, dict):
+        info = data.get("info")
+        if isinstance(info, dict):
+            value = info.get("media_count")
+            if isinstance(value, int):
+                return value
+            if isinstance(value, str) and value.isdigit():
+                return int(value)
+    return None
+
+
+def _extract_has_more(payload: dict[str, Any]) -> bool | None:
+    for container in (payload, payload.get("data") if isinstance(payload.get("data"), dict) else None):
+        if not isinstance(container, dict):
+            continue
+        value = container.get("has_more")
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value != 0
+        if isinstance(value, str) and value.isdigit():
+            return int(value) != 0
+    return None
+
 def _extract_media_aid(item: dict[str, Any]) -> int | None:
     for key in ("id", "aid"):
         value = item.get(key)
@@ -154,11 +189,15 @@ async def get_favorite_aids_ordered(media_id: int, credential: Credential) -> li
             ordered.append(aid)
             seen.add(aid)
 
-        has_more = payload.get("has_more")
-        if isinstance(has_more, bool):
-            if not has_more:
-                break
-        elif len(medias) < 20:
+        has_more = _extract_has_more(payload)
+        if has_more is False:
+            break
+
+        total_count = _extract_total_count(payload)
+        if total_count is not None and len(ordered) >= total_count:
+            break
+
+        if len(medias) < 20:
             break
 
         page += 1
