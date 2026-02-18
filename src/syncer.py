@@ -121,7 +121,8 @@ class SyncService:
             existing_set = set(existing_ordered)
 
             to_add = desired_set - existing_set
-            to_remove = existing_set - desired_set
+            # 保留收藏夹中 RSS 已不存在的视频；仅在容量控制场景下删除。
+            to_remove: set[int] = set()
             to_remove |= self._compute_capacity_evictions(
                 existing_ordered=existing_ordered,
                 to_remove=to_remove,
