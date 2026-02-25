@@ -3,3 +3,4 @@ __pycache__/
 .env
 data/credential.json
 data/state.json
+logs/

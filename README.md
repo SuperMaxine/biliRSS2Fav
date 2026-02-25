@@ -91,7 +91,25 @@ FAV_TITLE=RSS 同步收藏夹
 FAV_PRIVATE=false
 FAV_MAX_ITEMS=200
 SYNC_INTERVAL_SECONDS=300
+SYNC_ONCE_TIMEOUT_SECONDS=420
+API_STEP_TIMEOUT_SECONDS=45
+CHECK_VALID_ENABLED=false
+CHECK_VALID_TIMEOUT_SECONDS=20
+CREDENTIAL_REFRESH_ENABLED=true
+CREDENTIAL_REFRESH_TIMEOUT_SECONDS=30
+USE_CACHED_MEDIA_ID_FIRST=true
 OP_DELAY_SECONDS=0.3
+READ_PAGE_DELAY_SECONDS=0.5
+RISK_CONTROL_RETRY_TIMES=4
+RISK_CONTROL_RETRY_BASE_SECONDS=5
+RISK_CONTROL_RETRY_MAX_SECONDS=120
+ALERT_COOLDOWN_SECONDS=1800
+ALERT_SEND_TIMEOUT_SECONDS=10
+BILI_REQUEST_TIMEOUT_SECONDS=20
+BILI_TRUST_ENV=false
+LOG_FILE=logs/biliRSS2Fav.log
+LOG_MAX_BYTES=10485760
+LOG_BACKUP_COUNT=5
 
 CREDENTIAL_JSON=data/credential.json
 STATE_JSON=data/state.json
@@ -108,6 +126,17 @@ SMTP_FROM_NAME=biliRSS2Fav
 
 - `FAV_MAX_ITEMS` 是你定义的“公开窗口大小”，不是 B 站硬上限
 - `OP_DELAY_SECONDS` 越大越稳（可降低风控概率）
+- `READ_PAGE_DELAY_SECONDS` 用于控制收藏夹分页读取节奏，收藏量大时建议 `0.5~1.0`
+- `ALERT_COOLDOWN_SECONDS` 用于同类错误邮件冷却，避免告警风暴
+- `SYNC_ONCE_TIMEOUT_SECONDS` 用于限制单轮同步最长时长，防止进程卡死
+- `API_STEP_TIMEOUT_SECONDS` 用于限制单个网络步骤时长，避免卡在某一步
+- `CHECK_VALID_ENABLED` 建议默认关闭，避免 `check_valid` 在网络波动时阻塞同步
+- `CREDENTIAL_REFRESH_ENABLED` 建议开启；仅在网络异常排障时临时关闭
+- `CREDENTIAL_REFRESH_TIMEOUT_SECONDS` 用于限制刷新 cookie 的等待时长，超时会跳过本轮刷新
+- `USE_CACHED_MEDIA_ID_FIRST` 建议开启，优先使用 `state.json` 的 media_id，减少不必要接口调用
+- `ALERT_SEND_TIMEOUT_SECONDS` 用于限制邮件告警发送耗时，避免 SMTP 阻塞主流程
+- `BILI_REQUEST_TIMEOUT_SECONDS` / `BILI_TRUST_ENV` 用于收敛网络等待时间并避免误用系统代理
+- `LOG_FILE` 为日志文件路径，默认按大小轮转（保留最近 `LOG_BACKUP_COUNT` 个文件）
 
 ### 4. 生成凭据（推荐：受控浏览器自动抓取）
 
@@ -207,6 +236,8 @@ python -m src.browser_login --env-file .env --timeout-seconds 600
 
 - 增大 `OP_DELAY_SECONDS`（例如 `0.5` 或 `1.0`）
 - 适当增加 `SYNC_INTERVAL_SECONDS`
+- 维持 `READ_PAGE_DELAY_SECONDS >= 0.5`
+- 维持 `RISK_CONTROL_RETRY_TIMES >= 3` 与退避参数默认值
 
 ### 5) 邮件告警不发送
 
@@ -220,6 +251,15 @@ python -m src.browser_login --env-file .env --timeout-seconds 600
 
 ```bash
 python mail_example.py "SMTP test" --env-file .env
+```
+
+### 6) 如何查看运行日志
+
+默认日志文件为 `logs/biliRSS2Fav.log`，可直接查看：
+
+```bash
+tail -n 200 logs/biliRSS2Fav.log
+tail -f logs/biliRSS2Fav.log
 ```
 
 ## 安全建议
@@ -243,4 +283,7 @@ python -m src.main once --env-file .env --verbose
 
 # 常驻同步
 python -m src.main daemon --env-file .env
+
+# 实时看日志文件
+tail -f logs/biliRSS2Fav.log
 ```

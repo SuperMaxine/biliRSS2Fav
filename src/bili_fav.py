@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -164,7 +165,11 @@ async def ensure_favorite_list(
     return media_id
 
 
-async def get_favorite_aids_ordered(media_id: int, credential: Credential) -> list[int]:
+async def get_favorite_aids_ordered(
+    media_id: int,
+    credential: Credential,
+    page_delay_seconds: float = 0.0,
+) -> list[int]:
     fav = FavoriteList(
         type_=FavoriteListType.VIDEO,
         media_id=media_id,
@@ -201,6 +206,8 @@ async def get_favorite_aids_ordered(media_id: int, credential: Credential) -> li
             break
 
         page += 1
+        if page_delay_seconds > 0:
+            await asyncio.sleep(page_delay_seconds)
     return ordered
 
 
